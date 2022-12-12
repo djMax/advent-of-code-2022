@@ -14,14 +14,23 @@ export function readGrid<T>(lines: string[], element: (c: string) => T) {
   return lines.map((line) => line.split('').map(element));
 }
 
+export function log(...args: any[]) {
+  console.log(...args);
+}
+
+export function loop(fn: () => void, n: number, interval = 0) {
+  for (let i = 0; i < n; i += 1) {
+    if (interval && i % interval === 0) {
+      log(`Completed ${i} iterations`);
+    }
+    fn();
+  }
+}
+
 export function printGrid<T>(grid: T[][]) {
   console.log(`
 ${grid.map((line) => line.join('')).join('\n')}
 `);
-}
-
-export function log(...args: any[]) {
-  console.log(...args);
 }
 
 export function printPositions(positions: number[][]) {
