@@ -445,6 +445,7 @@ __metadata:
     jest: ^29.1.2
     jest-openapi: ^0.14.2
     lint-staged: ^13.0.3
+    lite-pathfindings: ^1.1.3
     lodash: ^4.17.21
     ts-jest: ^29.0.3
     typescript: ^4.8.4
@@ -3991,6 +3992,13 @@ __metadata:
     enquirer:
       optional: true
   checksum: 18975d690988aa2cce18fea9bacfc12c2607948ff9f7b7fd5b3e2b64d059b6e1961f8d06b4e1400d4c6bc18af84c7c145c2d22a1d392464fdb197c53b062e3d5
+  languageName: node
+  linkType: hard
+
+"lite-pathfindings@npm:^1.1.3":
+  version: 1.1.3
+  resolution: "lite-pathfindings@npm:1.1.3"
+  checksum: b3edd536f25a01afbaaaf310e0c17b6ab594f2142999932ac660e4426141826a27eb6e36910dee8b77465da8591d1f10cd0fa604782dc4154dd183e91c2bb5b4
   languageName: node
   linkType: hard
 

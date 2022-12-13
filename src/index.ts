@@ -27,10 +27,21 @@ export function loop(fn: () => void, n: number, interval = 0) {
   }
 }
 
-export function printGrid<T>(grid: T[][]) {
+export function printGrid<T>(grid: T[][], elementWidth = 1) {
   console.log(`
-${grid.map((line) => line.join('')).join('\n')}
+${grid.map((line) => line.map((s) => String(s).padEnd(elementWidth)).join('')).join('\n')}
 `);
+}
+
+export function findInGrid<T>(grid: T[][], element: T): [number, number] | undefined {
+  for (let y = 0; y < grid.length; y += 1) {
+    for (let x = 0; x < grid[y].length; x += 1) {
+      if (grid[y][x] === element) {
+        return [x, y];
+      }
+    }
+  }
+  return undefined;
 }
 
 export function printPositions(positions: number[][]) {

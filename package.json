@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@gasbuddy/coconfig": "^1.0.0",
+    "lite-pathfindings": "^1.1.3",
     "lodash": "^4.17.21"
   },
   "packageManager": "yarn@3.3.0"
