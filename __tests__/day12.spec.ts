@@ -1,4 +1,5 @@
-import { findInGrid, getLines, log, printGrid, readGrid } from '../src/index';
+import { Djikstra, EdgeMap, WeightedEdge } from 'lite-pathfindings';
+import { findInGrid, getLines, readGrid } from '../src/index';
 
 const sample = `Sabqponm
 abcryxxl
@@ -16,85 +17,107 @@ function elevation(v: string) {
   return v.charCodeAt(0) - 'a'.charCodeAt(0) + 1;
 }
 
-interface CandidatePath {
-  path: string[];
-  at: [number, number];
-}
-
-function isValid(grid: number[][], start: [number, number], end: [number, number]) {
-  if (start[0] < 0 || end[0] < 0 || start[1] < 0 || end[1] < 0) {
+function isValid(
+  grid: number[][],
+  from: [number, number],
+  to: [number, number],
+  blockList: [number, number][],
+) {
+  if (from[0] < 0 || to[0] < 0 || from[1] < 0 || to[1] < 0) {
     return false;
   }
-  if (start[0] >= grid[0].length || end[0] >= grid[0].length) {
+  if (from[0] >= grid[0].length || to[0] >= grid[0].length) {
     return false;
   }
-  if (start[1] >= grid.length || end[1] >= grid.length) {
+  if (from[1] >= grid.length || to[1] >= grid.length) {
     return false;
   }
-  const eStart = grid[start[1]][start[0]];
-  const eEnd = grid[end[1]][end[0]];
-  if (eEnd === -1) {
-    // This case is handled elsewhere, so if we are here it's because we can't reach the end yet
+  if (blockList.find((p) => p[0] === to[0] && p[1] === to[1])) {
     return false;
   }
+  const eStart = grid[from[1]][from[0]];
+  const eEnd = grid[to[1]][to[0]];
   if (eEnd <= eStart + 1) {
     return true;
   }
   return false;
 }
 
-function findShortestPath(grid: number[][], from: CandidatePath) {
-  const queue = [from];
-  let best: string[] | undefined;
-
-  const setBest = (b: string[]) => {
-    // log('Found the end!', b);
-    best = b;
-  };
-
-  const isGreaterThanBest = (n: number) => best && best.length < n;
-
-  while (queue.length) {
-    const cur = queue.shift()!;
-    const key = `${cur.at[0]},${cur.at[1]}`;
-    if (!from.path.includes(key)) {
+function gridToEdges(
+  grid: number[][],
+  blockList: [number, number][],
+  edgeInfo = (c: [number, number], v: number): [string, number] => [c.join(','), 27 - v],
+) {
+  const edges: EdgeMap = {};
+  for (let y = 0; y < grid.length; y += 1) {
+    for (let x = 0; x < grid[y].length; x += 1) {
+      const available: WeightedEdge = {};
       [
         [0, 1],
         [0, -1],
         [1, 0],
         [-1, 0],
-      ].forEach(([dx, dy]) => {
-        const spot = grid[cur.at[1]][cur.at[0]];
-        const next = [cur.at[0] + dx, cur.at[1] + dy] as [number, number];
-        const nextKey = next.join(',');
-        if (grid[next[1]]?.[next[0]] === -1 && spot >= 25) {
-          // We found the end!
-          setBest([...cur.path, cur.at.join(','), next.join(',')]);
-          return;
-        }
-        if (isGreaterThanBest(cur.path.length + 2) || cur.path.includes(nextKey)) {
-          return;
-        }
-        if (isValid(grid, cur.at, [cur.at[0] + dx, cur.at[1] + dy])) {
-          queue.push({ path: [...cur.path, key], at: next });
-        }
-      });
+      ]
+        .filter(([dx, dy]) => isValid(grid, [x, y], [x + dx, y + dy], blockList))
+        .forEach(([dx, dy]) => {
+          const el = grid[y + dy][x + dx];
+          const [edgeName, edgeWeight] = edgeInfo([x + dx, y + dy], el);
+          available[edgeName] = edgeWeight;
+        });
+      const me = edgeInfo([x, y], grid[y][x])[0];
+      if (edges[me]) {
+        Object.assign(edges[me], available);
+      } else {
+        edges[me] = available;
+      }
     }
   }
-  return best;
+  return edges;
+}
+
+function getGridInfo(lines: string[]) {
+  const grid = readGrid(lines, elevation);
+  const S = findInGrid(grid, 0)!;
+  grid[S[1]][S[0]] = 1;
+  const E = findInGrid(grid, -1)!;
+  grid[E[1]][E[0]] = 26;
+  return { grid, S, E };
+}
+
+function runPart1(lines: string[]) {
+  const { grid, S, E } = getGridInfo(lines);
+  const pred = Djikstra.init(gridToEdges(grid, [S]), S.join(','));
+  const path = Djikstra.getPath(pred, S.join(','), E.join(','));
+  // log(S, 'to', E, path);
+  return { path, grid };
+}
+
+function runPart2(lines: string[]) {
+  const { grid, E } = getGridInfo(lines);
+  const edges = gridToEdges(grid, [], (c, v) => {
+    if (v === 1) {
+      // For part 2, all "A" values are equivalent to the end, so this greatly
+      // simplifies the graph
+      return ['a', 1];
+    }
+    return [c.join(','), 1];
+  });
+  const pred = Djikstra.init(edges, 'a');
+  return Djikstra.getPath(pred, 'a', E.join(','));
 }
 
 describe('day 12', () => {
   test('sample data', () => {
-    const grid = readGrid(sample.split('\n'), elevation);
-    const S = findInGrid(grid, 0)!;
-    printGrid(grid, 4);
-    const path = findShortestPath(grid, { path: [], at: S });
+    const { path } = runPart1(sample.split('\n'));
     expect(path).toBeTruthy();
-    expect(path?.length).toEqual(32);
+    expect(path.length - 1).toEqual(31);
+    const part2 = runPart2(sample.split('\n'));
+    expect(part2.length - 1).toEqual(29);
   });
 
-  const grid = readGrid(getLines('day12.txt'), elevation);
-  const sp = findShortestPath(grid, { path: [], at: findInGrid(grid, 0)! });
-  test.todo(`Part 1 result ${sp ? sp.length - 1 : 'not found'}`);
+  const { path } = runPart1(getLines('day12.txt'));
+  test.todo(`Part 1 result ${path.length - 1}`);
+
+  const p2 = runPart2(getLines('day12.txt'));
+  test.todo(`Part 2 result ${p2.length - 1}`);
 });

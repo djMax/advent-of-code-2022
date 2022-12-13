@@ -44,6 +44,18 @@ export function findInGrid<T>(grid: T[][], element: T): [number, number] | undef
   return undefined;
 }
 
+export function findAllInGrid<T>(grid: T[][], element: T): [number, number][] | undefined {
+  const spots: [number, number][] = [];
+  for (let y = 0; y < grid.length; y += 1) {
+    for (let x = 0; x < grid[y].length; x += 1) {
+      if (grid[y][x] === element) {
+        spots.push([x, y]);
+      }
+    }
+  }
+  return spots;
+}
+
 export function printPositions(positions: number[][]) {
   const minX = Math.min(...positions.map((p) => p[0]));
   const minY = Math.min(...positions.map((p) => p[1]));
