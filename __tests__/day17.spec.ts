@@ -91,23 +91,6 @@ function drop(rock: Rock, occupied: Set<string>) {
   rock.points = pts;
 }
 
-function print(occupied: Set<string>, cur: Rock, height: number) {
-  const at = (x: number, y: number) => {
-    if (occupied.has(`${x},${y}`)) {
-      return '#';
-    }
-    if (cur.points.find((p) => p[0] === x && p[1] === y)) {
-      return '@';
-    }
-    return '.';
-  };
-  for (let y = Math.max(3, height + 1, cur.top); y >= 0; y -= 1) {
-    const r = [0, 1, 2, 3, 4, 5, 6].map((x) => at(x, y));
-    log(`${String(y).padEnd(4)} |${r.join('')}|`);
-  }
-  log('     |-------|\n');
-}
-
 function getKeyForState(tops: number[], shape: Shape, windIndex: number) {
   return `${tops.map((t) => t - tops[0]).join('')}${shape}${windIndex}`;
 }
