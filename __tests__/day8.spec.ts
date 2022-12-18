@@ -1,4 +1,4 @@
-import { getLines, printGrid, readGrid } from "../src/index";
+import { getLines, readGrid } from '../src/index';
 
 const sample = `30373
 25512
@@ -28,6 +28,7 @@ function canSeeTree(grid: number[][], x: number, y: number) {
   if (left.every((c) => c < me) || right.every((c) => c < me)) {
     return true;
   }
+  return false;
 }
 
 function visibleTrees(grid: number[][]) {
@@ -79,7 +80,7 @@ function maximumScenicScore(grid: number[][]) {
 describe('day 8', () => {
   test('sample data', () => {
     const grid = readGrid(sample.split('\n'), (c) => Number(c));
-    printGrid(grid);
+    // printGrid(grid);
     expect(visibleTrees(grid)).toEqual(21);
     expect(maximumScenicScore(grid)).toEqual(8);
   });

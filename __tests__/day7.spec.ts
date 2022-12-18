@@ -1,4 +1,3 @@
-import util from 'util';
 import { getLines } from '../src';
 
 interface VmFile {
