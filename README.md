@@ -1,5 +1,7 @@
 # advent-of-code-2022
 
+[![Build and run tests](https://github.com/djMax/advent-of-code-2022/actions/workflows/pull_requests.yml/badge.svg)](https://github.com/djMax/advent-of-code-2022/actions/workflows/pull_requests.yml)
+
 Solutions for the Advent of Code 2022 written in Typescript with an attempt
 to lean heavily on embracing a "Github Copilot focused" style of building.
 

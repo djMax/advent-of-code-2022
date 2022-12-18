@@ -1,6 +1,9 @@
 name: Build and run tests
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     types: [assigned, opened, synchronize, reopened]
   # Allows you to run this workflow manually from the Actions tab
@@ -13,9 +16,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-
-
 
     steps:
     - uses: actions/checkout@v1
