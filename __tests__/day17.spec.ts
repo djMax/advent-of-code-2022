@@ -129,9 +129,9 @@ function run(wind: string, rocks: number) {
     if (terrainMap[thash] !== undefined) {
       const { rocksThen, heightThen } = terrainMap[thash];
       const rockCycle = r - rocksThen;
-      const heightDelta = maxY - heightThen;
       const loops = Math.floor((rocks - r) / rockCycle);
       if (loops) {
+        const heightDelta = maxY - heightThen;
         // log(
         //   `Cycle at ${r}: ${rockCycle} rocks ${loops} times. Adding ${loops * heightDelta}`,
         // );
