@@ -1,4 +1,4 @@
-import { getLines, log } from '../src';
+import { getLines } from '../src';
 
 const sample = '>>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>';
 

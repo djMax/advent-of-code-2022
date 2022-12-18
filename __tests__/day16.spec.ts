@@ -1,4 +1,3 @@
-import lodash from 'lodash';
 import { getLines } from '../src/index';
 
 const sample = `Valve AA has flow rate=0; tunnels lead to valves DD, II, BB
@@ -141,21 +140,35 @@ function maxPressure(valves: Record<string, Valve>, minutes: number) {
 type Result = ReturnType<typeof maxPressure>;
 
 function findBestPair(valves: Record<string, Valve>, paths: Result[]) {
-  const activeValves = Object.values(valves).filter((v) => v.flow > 0).length;
+  const activeValves = Object.values(valves)
+    .filter((v) => v.flow > 0)
+    .map((v) => v.name);
   let bestTotal = 0;
 
-  paths.forEach((p1, ix) => {
-    paths.slice(ix + 1).forEach((p2) => {
-      const totalValves = p1.order.length + p2.order.length;
-      const thisOne = p1.released + p2.released;
-      if (
-        thisOne > bestTotal &&
-        totalValves <= activeValves &&
-        lodash.intersection(p1.order, p2.order).length === 0
-      ) {
-        bestTotal = thisOne;
+  const map: Record<string, Result[]> = {};
+  paths.forEach((p) => {
+    const path = [...p.order].sort().join('');
+    map[path] = map[path] || [];
+    map[path].push(p);
+  });
+
+  const check = (path: Result, complement: string) => {
+    if (map[complement]) {
+      const releases = map[complement].filter((p2) => path !== p2).map((p2) => p2.released);
+      const bestForPair = path.released + Math.max(...releases);
+      if (bestForPair > bestTotal) {
+        bestTotal = bestForPair;
       }
-    });
+    } else if (complement.length > 2) {
+      check(path, complement.substring(0, complement.length - 2));
+    }
+  };
+  paths.forEach((p) => {
+    const complement = activeValves
+      .filter((v) => !p.order.includes(v))
+      .sort()
+      .join('');
+    check(p, complement);
   });
   return bestTotal;
 }
