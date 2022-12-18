@@ -56,7 +56,9 @@ function addSize(dir: VmDirectory, size: number) {
 }
 
 function vm(lines: string[]) {
-  const root: VmDirectory = { name: '', directories: {}, files: [], totalSize: 0 };
+  const root: VmDirectory = {
+    name: '', directories: {}, files: [], totalSize: 0,
+  };
   let cwd: VmDirectory = root;
   lines.forEach((line) => {
     if (line.startsWith('$')) {

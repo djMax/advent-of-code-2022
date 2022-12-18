@@ -49,7 +49,9 @@ function parseBeacons(lines: string[]) {
     }),
   );
   const offsetX = minX < 0 ? -minX : 0;
-  return { sensors, minX, maxX, offsetX };
+  return {
+    sensors, minX, maxX, offsetX,
+  };
 }
 
 function eliminate(row: Item[], x: number) {
@@ -112,7 +114,7 @@ function sign(x: number) {
   return x < 0 ? -1 : 1;
 }
 
-function findMissingBeacon(sensors: Sensor[], maxX: number, offsetX: number, searchSpace: number) {
+function findMissingBeacon(sensors: Sensor[]) {
   // So the insight that matters here is that the beacon must lie at a point
   // that is precisely between two sensor's ranges. Something like S####*####S
   // (but in 2d of course). So let's find all these pairs.
@@ -165,7 +167,7 @@ describe('day 15', () => {
     const { sensors, maxX, offsetX } = parseBeacons(sample.split('\n'));
     expect(sensors.length).toEqual(14);
     expect(getRowStats(sensors, maxX, offsetX, 10).filter((f) => f === '#').length).toEqual(26);
-    expect(findMissingBeacon(sensors, maxX, offsetX, 20)).toEqual(56000011);
+    expect(findMissingBeacon(sensors)).toEqual(56000011);
     /*
     const rows = [];
     for (let i = -2; i <= 22; i += 1) {
@@ -180,6 +182,6 @@ describe('day 15', () => {
   const { sensors, maxX, offsetX } = parseBeacons(getLines('day15.txt'));
   const row = getRowStats(sensors, maxX, offsetX, 2000000);
   test.todo(`Part 1: ${row.filter((f) => f === '#').length}`);
-  const m = findMissingBeacon(sensors, maxX, offsetX, 4000000);
+  const m = findMissingBeacon(sensors);
   test.todo(`Part 2: ${m}`);
 });

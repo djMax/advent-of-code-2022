@@ -68,7 +68,7 @@ function push(rock: Rock, left: boolean, occupied: Set<string>) {
     return;
   }
   const l = left ? rock.left - 1 : rock.left + 1;
-  const pts = getShape(rock.shape, l, rock.bottom)
+  const pts = getShape(rock.shape, l, rock.bottom);
   if (pts.find(([x, y]) => occupied.has(`${x},${y}`))) {
     return;
   }
