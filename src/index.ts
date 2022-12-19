@@ -75,3 +75,5 @@ export function printPositions(positions: number[][]) {
     log(line.join(''));
   }
 }
+
+export * from './types';
