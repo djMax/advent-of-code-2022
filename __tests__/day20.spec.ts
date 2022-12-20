@@ -11,14 +11,13 @@ const sample = `1
 interface Value { value: number; }
 
 function mix(original: Value[], copy: Value[]) {
-  const mod = copy.length - 1;
   original.forEach((value) => {
     const index = copy.indexOf(value);
     // Remove
     copy.splice(index, 1);
     // Put it back - important to use the copy length because we just
     // removed one.
-    copy.splice((index + value.value) % mod, 0, value);
+    copy.splice((index + value.value) % copy.length, 0, value);
   });
   return copy;
 }
