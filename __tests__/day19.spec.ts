@@ -61,7 +61,7 @@ async function part2(blueprints: Blueprint[]) {
   return maxScores.reduce((acc, s) => acc * s, 1);
 }
 
-jest.setTimeout(60000);
+jest.setTimeout(180000);
 
 describe('day 19', () => {
   test('sample data', async () => {
