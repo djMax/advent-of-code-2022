@@ -71,8 +71,7 @@ function part1(lines: string[]) {
   while (byName.root.value === undefined) {
     opNodes.forEach((node) => {
       if (node.value === undefined) {
-        const a = byName[node.a].value;
-        const b = byName[node.b].value;
+        const [a, b] = [byName[node.a].value, byName[node.b].value];
         if (a !== undefined && b !== undefined) {
           node.value = FNS[node.op!](a, b);
         }
@@ -106,16 +105,15 @@ function backProp(byName: Record<string, Monkey>, name: string) {
 
 function part2(lines: string[]) {
   const { byName, opNodes } = parse(lines);
+  // Don't resolve human or dependencies of human
   byName.humn.value = undefined;
-  // Resolve everything that isn't root or humn
   let resolved = 0;
   do {
     resolved = opNodes.filter((node) => {
       if (node.value === undefined && node.name !== 'humn') {
-        const a = byName[node.a].value;
-        const b = byName[node.b].value;
+        const [a, b] = [byName[node.a].value, byName[node.b].value];
         if (a !== undefined && b !== undefined) {
-          node.value = FNS[node.op!](a, b);
+          node.value = FNS[node.op](a, b);
           return true;
         }
       }
@@ -124,9 +122,8 @@ function part2(lines: string[]) {
   } while (resolved);
 
   const root = byName.root as DependentMonkey;
-  const rootA = byName[root.a].value;
-  const rootB = byName[root.b].value;
-  const target = (rootA || rootB)!;
+  const [rootA, rootB] = [byName[root.a].value, byName[root.b].value];
+  const target = rootA || rootB || 0;
   // Rely on at least ONE branch to be resolved
   if (byName[root.a].value === undefined && byName[root.b].value === undefined) {
     throw new Error('Cannot resolve root');
