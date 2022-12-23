@@ -11,7 +11,7 @@
       "skipFiles": [
         "<node_internals>/**"
       ],
-      "args": ["day20"],
+      "args": ["day22.p2"],
       "program": "${workspaceFolder}/node_modules/.bin/jest",
       "outFiles": [
         "${workspaceFolder}/**/*.js"
