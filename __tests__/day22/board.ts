@@ -1,5 +1,6 @@
+import { Position } from '../../src/index';
 import {
-  Direction, Heading, Move, Contents, Position,
+  Direction, Heading, Move, Contents,
 } from './types';
 
 export function parse(text: string) {

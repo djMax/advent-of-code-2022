@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import console from 'console';
+import { performance } from 'node:perf_hooks';
 
 export function getFile(fullpath: string) {
   return fs.readFileSync(fullpath, 'utf8');
@@ -8,10 +9,6 @@ export function getFile(fullpath: string) {
 
 export function getLines(filename: string) {
   return getFile(path.resolve('data', filename)).split('\n');
-}
-
-export function readGrid<T>(lines: string[], element: (c: string) => T) {
-  return lines.map((line) => line.split('').map(element));
 }
 
 export function log(...args: any[]) {
@@ -76,4 +73,12 @@ export function printPositions(positions: number[][]) {
   }
 }
 
+export function time(fn: () => any): string {
+  const s = performance.now();
+  const result = fn();
+  const e = performance.now();
+  return `${result || 'n/a'} in ${e - s}ms`;
+}
+
 export * from './types';
+export * from './Point';

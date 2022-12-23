@@ -1,11 +1,9 @@
 import assert from 'assert';
-import { getFile } from '../../src/index';
+import { getFile, Position } from '../../src/index';
 import {
   DELTAS, parse, score, turn,
 } from './board';
-import {
-  Move, Contents, Position, Heading,
-} from './types';
+import { Move, Contents, Heading } from './types';
 
 const sample = `        ...#
         .#..

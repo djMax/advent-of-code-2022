@@ -1,6 +1,6 @@
-export type FaceName = 'top' | 'back' | 'left' | 'front' | 'bottom' | 'right';
+import { Position } from '../../src/index';
 
-export type Position = [number, number];
+export type FaceName = 'top' | 'back' | 'left' | 'front' | 'bottom' | 'right';
 
 export enum Contents {
   Blank = ' ',
