@@ -78,4 +78,8 @@ export class Point {
   get allMoves() {
     return [...this.nonDiagonalMoves, ...this.diagonalMoves];
   }
+
+  every(fn: (v: number, d: number) => boolean) {
+    return [this.x, this.y].every(fn);
+  }
 }

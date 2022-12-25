@@ -7,16 +7,24 @@ export class MatrixBoard<T> {
 
   constructor(public contents: T[][]) {}
 
-  forEach(fn: (p: Point, v: T) => void, filter: (p: Point, v: T) => boolean = () => true) {
+  forEach(
+    // Return FALSE to stop iterating
+    fn: (p: Point, v: T) => boolean | void,
+    filter: (p: Point, v: T) => boolean = () => true,
+  ): Point | undefined {
     for (let y = 0; y < this.contents.length; y += 1) {
       for (let x = 0; x < this.contents[y].length; x += 1) {
         const p: Point = new Point(x, y);
         const v = this.contents[y][x];
         if (filter(p, v)) {
-          fn(p, v);
+          const rz = fn(p, v);
+          if (rz === true) {
+            return new Point(x, y);
+          }
         }
       }
     }
+    return undefined;
   }
 
   map(fn: (p: Point, v: T) => T) {
@@ -29,6 +37,10 @@ export class MatrixBoard<T> {
 
   get dimension(): Point {
     return new Point(this.contents[0].length, this.contents.length);
+  }
+
+  at(x: number, y: number): T | undefined {
+    return this.contents[y]?.[x];
   }
 
   inRange(pos: Point) {
@@ -57,6 +69,17 @@ export class MatrixBoard<T> {
     return new MatrixBoard(newBoard);
   }
 
+  transpose() {
+    const result: T[][] = [];
+    for (let i = 0; i < this.contents[0].length; i += 1) {
+      result[i] = [];
+      for (let j = 0; j < this.contents.length; j += 1) {
+        result[i][j] = this.contents[j][i];
+      }
+    }
+    return new MatrixBoard(result);
+  }
+
   toSet(filter: (v: T, p: Point) => boolean) {
     const set = new Set<string>();
     this.forEach((p, v) => {
@@ -68,6 +91,20 @@ export class MatrixBoard<T> {
   }
 
   toString(elementWidth = 1) {
-    return this.contents.map((line) => line.map((s) => String(s).padEnd(elementWidth)).join('')).join('\n');
+    return this.contents
+      .map((line) => line.map((s) => String(s).padEnd(elementWidth)).join(''))
+      .join('\n');
+  }
+
+  get length() {
+    return this.contents.length;
+  }
+
+  row(y: number) {
+    return this.contents[y];
+  }
+
+  setAt(x: number, y: number, v: T) {
+    this.contents[y][x] = v;
   }
 }

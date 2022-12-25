@@ -1,4 +1,3 @@
-import { log } from '../src';
 import day24 from '../src/days/day24';
 
 const sample = `#.######

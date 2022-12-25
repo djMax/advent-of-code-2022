@@ -446,10 +446,12 @@ __metadata:
   resolution: "@gasbuddy/advent-of-code-2022@workspace:."
   dependencies:
     "@gasbuddy/coconfig": ^1.0.0
+    "@types/heap": ^0.2.31
     "@types/jest": ^29.1.1
     "@types/lodash": ^4.14.191
     eslint: ^8.2.0
     eslint-config-gasbuddy: ^7.0.2
+    heap: ^0.2.7
     husky: ^8.0.1
     jest: ^29.1.2
     jest-openapi: ^0.14.2
@@ -988,6 +990,13 @@ __metadata:
   dependencies:
     "@types/node": "*"
   checksum: d076bb61f45d0fc42dee496ef8b1c2f8742e15d5e47e90e20d0243386e426c04d4efd408a48875ab432f7960b4ce3414db20ed0fbbfc7bcc89d84e574f6e045a
+  languageName: node
+  linkType: hard
+
+"@types/heap@npm:^0.2.31":
+  version: 0.2.31
+  resolution: "@types/heap@npm:0.2.31"
+  checksum: 4149248f17944f97a0ebbc7efa0debaace8c98da25de23108499030f6a4fb00268f97776de135f919945a9a6dbe65bffce45cd2ae85ad1126f4eba120d785d2b
   languageName: node
   linkType: hard
 
@@ -2999,6 +3008,13 @@ __metadata:
   dependencies:
     function-bind: ^1.1.1
   checksum: b9ad53d53be4af90ce5d1c38331e712522417d017d5ef1ebd0507e07c2fbad8686fffb8e12ddecd4c39ca9b9b47431afbb975b8abf7f3c3b82c98e9aad052792
+  languageName: node
+  linkType: hard
+
+"heap@npm:^0.2.7":
+  version: 0.2.7
+  resolution: "heap@npm:0.2.7"
+  checksum: b0f3963a799e02173f994c452921a777f2b895b710119df999736bfed7477235c2860c423d9aea18a9f3b3d065cb1114d605c208cfcb8d0ac550f97ec5d28cb0
   languageName: node
   linkType: hard
 

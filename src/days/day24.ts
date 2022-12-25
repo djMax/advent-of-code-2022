@@ -2,6 +2,7 @@ import {
   Cardinal, getFile, log, time,
 } from '../index';
 import { MatrixBoard } from '../MatrixBoard';
+import { optimizedSearch, State, World } from '../optimizedSearch';
 import { Point } from '../Point';
 
 enum Contents {
@@ -30,27 +31,21 @@ const BlizzardMovement: Record<Blizzard, Cardinal> = {
 type BlizzardPositions = Record<string, Contents[]>;
 type PositionsByTurn = Record<number, BlizzardPositions>;
 
-interface State {
-  round: number;
-  path: Point[];
-  blizzards: BlizzardPositions;
-  score: number;
-}
-
-interface World {
+interface ElfWorld extends World {
   blizzards: PositionsByTurn;
   start: Point;
   target: Point;
+  distance: number;
   w: number;
   h: number;
-  initial: State;
 }
 
-function parse(input: string): World {
+function parse(input: string): ElfWorld {
   const board = MatrixBoard.read(input, (c) => c as Contents);
   const startX = board.contents[0].indexOf(Contents.Available);
   const h = board.contents.length;
   const end = board.contents[h - 1].indexOf(Contents.Available);
+
   const blizzards: BlizzardPositions = {};
   board.forEach(
     (p, v) => {
@@ -67,18 +62,13 @@ function parse(input: string): World {
     blizzards: { 0: blizzards },
     start,
     target,
+    distance: Point.manhattanDistance(start, target),
     w: board.dimension.x,
     h: board.dimension.y,
-    initial: {
-      round: 0,
-      path: [start],
-      blizzards,
-      score: Point.manhattanDistance(start, target),
-    },
   };
 }
 
-function possibleMoves(world: World, { path, blizzards }: State): Point[] {
+function possibleMoves(world: ElfWorld, { path, blizzards }: ElfState): Point[] {
   return path[path.length - 1].nonDiagonalMoves.filter((p) => {
     if (blizzards[p.toString()]?.length) {
       return false;
@@ -94,7 +84,7 @@ function possibleMoves(world: World, { path, blizzards }: State): Point[] {
   });
 }
 
-function rollover(world: World, p: Point) {
+function rollover(world: ElfWorld, p: Point) {
   if (p.x === 0) {
     return new Point(world.w - 2, p.y);
   }
@@ -116,7 +106,7 @@ function rollover(world: World, p: Point) {
   return p;
 }
 
-function moveBlizzards(world: World, now: BlizzardPositions): BlizzardPositions {
+function moveBlizzards(world: ElfWorld, now: BlizzardPositions): BlizzardPositions {
   const updated: BlizzardPositions = {};
   let preLength = 0;
   let postLength = 0;
@@ -136,7 +126,7 @@ function moveBlizzards(world: World, now: BlizzardPositions): BlizzardPositions 
   return updated;
 }
 
-function getBlizzardPosition(world: World, rounds: number) {
+function getBlizzardPosition(world: ElfWorld, rounds: number) {
   if (world.blizzards[rounds]) {
     return world.blizzards[rounds];
   }
@@ -146,117 +136,85 @@ function getBlizzardPosition(world: World, rounds: number) {
   return updated;
 }
 
-function printBlizzards(world: World, state: State) {
-  const board: string[][] = [];
-  for (let y = 0; y < world.h; y += 1) {
-    board[y] = [];
-    for (let x = 0; x < world.w; x += 1) {
-      const p = new Point(x, y);
-      const at = state.blizzards[p.toString()];
-      if (at) {
-        if (at.length > 1) {
-          board[y][x] = String(at.length);
-        } else {
-          board[y][x] = at[0] as Contents;
-        }
-      } else if (p.eq(state.path[state.path.length - 1])) {
-        board[y][x] = Contents.Elf;
-      } else if (p.eq(world.start) || p.eq(world.target)) {
-        board[y][x] = Contents.Available;
-      } else if (x === 0 || x === world.w - 1 || y === 0 || y === world.h - 1) {
-        board[y][x] = Contents.Wall;
-      } else {
-        board[y][x] = Contents.Available;
-      }
-    }
-  }
-  log(new MatrixBoard(board).toString());
-}
+class ElfState implements State<ElfWorld> {
+  expectedScore: number;
 
-function validStates(world: World, state: State): State[] {
-  const blizzards = getBlizzardPosition(world, state.round + 1);
-  const next = { ...state, blizzards, round: state.round + 1 };
-  const moves = possibleMoves(world, next);
-  if (moves.find((p) => p.eq(world.target))) {
+  completed: boolean;
+
+  constructor(
+    world: ElfWorld,
+    public round: number,
+    public path: Point[],
+    public blizzards: BlizzardPositions,
+  ) {
+    const at = path[path.length - 1];
+    this.expectedScore = world.distance - Point.manhattanDistance(world.target, at);
+    this.completed = at.eq(world.target);
+  }
+
+  get key() {
+    return `${this.round} ${this.path[this.path.length - 1].toString()}`;
+  }
+
+  compare(other: this): number {
+    return other.round - this.round;
+  }
+
+  createNextState(world: ElfWorld, next?: Point) {
+    const blizzards = getBlizzardPosition(world, this.round + 1);
+    const path = next ? [...this.path, next] : this.path;
+    return new ElfState(world, this.round + 1, path, blizzards);
+  }
+
+  getNextStates(world: ElfWorld) {
+    const next = this.createNextState(world);
+    const moves = possibleMoves(world, next);
+    if (moves.find((p) => p.eq(world.target))) {
+      return [this.createNextState(world, world.target)];
+    }
+    const validMoves = moves.map((p) => this.createNextState(world, p));
+    if (next.blizzards[this.path[this.path.length - 1].toString()]?.length) {
+      // Waiting is not an option, we need to move
+      return validMoves;
+    }
     return [
-      {
-        ...next,
-        path: [...state.path, world.target],
-      },
+      // Add a waiting move
+      next,
+      ...validMoves,
     ];
   }
-  const validMoves = moves.map((p) => ({
-    ...next,
-    path: [...state.path, p],
-    score: Point.manhattanDistance(world.target, p),
-  }));
-
-  if (blizzards[state.path[state.path.length - 1].toString()]?.length) {
-    // Waiting is not an option, we need to move
-    return validMoves;
-  }
-  return [
-    // Add a waiting move
-    next,
-    ...validMoves,
-  ];
 }
 
-function part1(world: World) {
-  const q = [world.initial];
-  let minRounds = Infinity;
-  let rounds = 0;
-
-  // Number of minutes and position are equivalent, so if we come across
-  // the same, prune.
-  const seen = new Set<string>();
-
-  while (q.length) {
-    const nextState = q.shift()!;
-    const stateKey = `${nextState.round} ${nextState.path[nextState.path.length - 1].toString()}`;
-    if (nextState.round >= minRounds || seen.has(stateKey)) {
-      continue; // Abandon this branch, it's too long
-    }
-    seen.add(stateKey);
-    rounds += 1;
-    if (rounds % 1000 === 0) {
-      q.sort((a, b) => a.score - b.score || a.round - b.round);
-    }
-    if (nextState.path[nextState.path.length - 1].eq(world.target)) {
-      if (nextState.round < minRounds) {
-        minRounds = nextState.round;
-      }
-    } else {
-      const validNext = validStates(world, nextState);
-      q.push(...validNext);
-    }
-  }
-  return minRounds;
+function part1(world: ElfWorld) {
+  const initial = new ElfState(world, 0, [world.start], getBlizzardPosition(world, 0));
+  const best = optimizedSearch(world, initial);
+  return best?.round;
 }
 
-function part2(world: World) {
-  const toEnd = part1(world);
-  const toBeginning = part1({
+function part2(world: ElfWorld) {
+  const toEnd = optimizedSearch(
+    world,
+    new ElfState(world, 0, [world.start], getBlizzardPosition(world, 0)),
+  )!;
+  const upsideDown: ElfWorld = {
     ...world,
-    start: world.target,
     target: world.start,
-    initial: {
-      blizzards: getBlizzardPosition(world, toEnd),
-      path: [world.target],
-      round: toEnd,
-      score: world.initial.score,
-    },
-  });
-  const toEndAgain = part1({
-    ...world,
-    initial: {
-      blizzards: getBlizzardPosition(world, toBeginning),
-      path: [world.start],
-      round: toBeginning,
-      score: world.initial.score,
-    },
-  });
-  return toEndAgain;
+    start: world.target,
+  };
+  const toBeginning = optimizedSearch(
+    upsideDown,
+    new ElfState(upsideDown, toEnd.round, [world.target], getBlizzardPosition(world, toEnd.round)),
+  )!;
+  const toEndAgain = optimizedSearch(
+    world,
+    new ElfState(
+      world,
+      toBeginning.round,
+      [world.start],
+      getBlizzardPosition(world, toBeginning.round),
+    ),
+  )!;
+  return toEndAgain.round;
 }
 
 export default {

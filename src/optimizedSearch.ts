@@ -1,6 +1,9 @@
-export interface World {
-  initialState: State<this>;
-}
+import Heap from 'heap';
+import { log } from './index';
+
+export interface World {}
+
+const debug = !!process.env.DEBUG;
 
 export interface State<W extends World> {
   // Higher is better. Used to prioritize states for exploration
@@ -14,20 +17,31 @@ export interface State<W extends World> {
 
   // Upon completion, isBetter will determine which one wins
   // (> 0 means I win, 0 means tie, < 0 means I lose)
-  compare(other: State<W>): number;
+  compare(other: this): number;
 
   // Generate all possible next states from this state.
   // world and explored can be used to proactively prune states
-  getNextStates: (world: W, explored: Set<string>) => State<W>[];
+  getNextStates(world: W, explored: Set<string>): State<W>[];
 }
 
-export function optimizedSearch<W extends World>(world: W) {
-  // TODO priority queue
-  const q: State<W>[] = [world.initialState];
+export function optimizedSearch<W extends World, S extends State<World>>(
+  world: W,
+  initialState: S,
+): S | undefined {
+  const q = new Heap<S>((a, b) => b.compare(a));
+  q.push(initialState);
   const statesVisited = new Set<string>();
-  let bestCompletion: State<W> | undefined;
+  let bestCompletion: S | undefined;
+  let examined = 0;
 
   const examine = (next: S) => {
+    const stateKey = next.key;
+    if (stateKey && statesVisited.has(stateKey)) {
+      // Prune this tree, we've already seen it
+      return;
+    }
+    statesVisited.add(stateKey);
+
     if (next.completed) {
       if (!bestCompletion || next.compare(bestCompletion) > 0) {
         bestCompletion = next;
@@ -36,22 +50,20 @@ export function optimizedSearch<W extends World>(world: W) {
       return;
     }
 
-    if (bestCompletion && next.compare(bestCompletion) < 0) {
+    if (bestCompletion && bestCompletion.compare(next) > 0) {
       // Prune this tree, it's worse than the best completion
       return;
     }
 
-    const stateKey = next.key;
-    if (stateKey && statesVisited.has(stateKey)) {
-      // Prune this tree, we've already seen it
-      return;
+    examined += 1;
+    if (debug && examined % 1000 === 0) {
+      log('Examined', examined, 'states', bestCompletion ? `best ${bestCompletion.toString()}` : 'no solution');
     }
-
-    const nextStates = next.getNextStates(world, statesVisited);
-    q.push(...nextStates);
+    const nextStates = next.getNextStates(world, statesVisited) as S[];
+    nextStates.filter((s) => !statesVisited.has(s.key)).forEach((n) => q.push(n));
   };
 
-  while (q.length) {
+  while (q.size()) {
     const next = q.pop()!;
     examine(next);
   }
