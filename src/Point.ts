@@ -43,6 +43,10 @@ export class Point {
     return dirs.reduce((acc, dir) => acc.add(Point[dir]), new Point(0, 0));
   }
 
+  static manhattanDistance(p1: Point, p2: Point) {
+    return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
+  }
+
   static bounds(points: Point[]) {
     let {
       e, w, n, s,
@@ -61,5 +65,17 @@ export class Point {
     return {
       e, w, n, s,
     };
+  }
+
+  get nonDiagonalMoves() {
+    return [Point.N, Point.S, Point.E, Point.W].map((p) => this.add(p));
+  }
+
+  get diagonalMoves() {
+    return [this.move('NE'), this.move('NW'), this.move('SE'), this.move('SW')];
+  }
+
+  get allMoves() {
+    return [...this.nonDiagonalMoves, ...this.diagonalMoves];
   }
 }

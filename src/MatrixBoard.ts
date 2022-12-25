@@ -1,17 +1,17 @@
-import { Position } from './types';
+import { Point } from './Point';
 
 export class MatrixBoard<T> {
   static read<T>(lines: string, element: (c: string) => T) {
     return new MatrixBoard(lines.split('\n').map((line) => line.split('').map(element)));
   }
 
-  constructor(public board: T[][]) {}
+  constructor(public contents: T[][]) {}
 
-  forEach(fn: (p: Position, v: T) => void, filter: (p: Position, v: T) => boolean = () => true) {
-    for (let y = 0; y < this.board.length; y += 1) {
-      for (let x = 0; x < this.board[y].length; x += 1) {
-        const p: Position = [x, y];
-        const v = this.board[y][x];
+  forEach(fn: (p: Point, v: T) => void, filter: (p: Point, v: T) => boolean = () => true) {
+    for (let y = 0; y < this.contents.length; y += 1) {
+      for (let x = 0; x < this.contents[y].length; x += 1) {
+        const p: Point = new Point(x, y);
+        const v = this.contents[y][x];
         if (filter(p, v)) {
           fn(p, v);
         }
@@ -19,25 +19,25 @@ export class MatrixBoard<T> {
     }
   }
 
-  map(fn: (p: Position, v: T) => T) {
+  map(fn: (p: Point, v: T) => T) {
     const newBoard: T[][] = [];
-    for (let y = 0; y < this.board.length; y += 1) {
-      newBoard.push(this.board[y].map((v, x) => fn([x, y], v)));
+    for (let y = 0; y < this.contents.length; y += 1) {
+      newBoard.push(this.contents[y].map((v, x) => fn(new Point(x, y), v)));
     }
     return new MatrixBoard(newBoard);
   }
 
-  get dimension(): Position {
-    return [this.board[0].length, this.board.length];
+  get dimension(): Point {
+    return new Point(this.contents[0].length, this.contents.length);
   }
 
-  inRange(pos: Position) {
+  inRange(pos: Point) {
     const dim = this.dimension;
-    return pos.every((p, ix) => p >= 0 && p < dim[ix]);
+    return pos.x >= 0 && pos.x < dim.x && pos.y >= 0 && pos.y < dim.y;
   }
 
   expand(dx: number, dy: number, empty: T) {
-    const { board } = this;
+    const { contents: board } = this;
     const newBoard: T[][] = [];
     for (let y = 0; y < board.length + dy; y += 1) {
       if (y < dy) {
@@ -57,7 +57,7 @@ export class MatrixBoard<T> {
     return new MatrixBoard(newBoard);
   }
 
-  toSet(filter: (v: T, p: Position) => boolean) {
+  toSet(filter: (v: T, p: Point) => boolean) {
     const set = new Set<string>();
     this.forEach((p, v) => {
       if (filter(v, p)) {
@@ -65,5 +65,9 @@ export class MatrixBoard<T> {
       }
     });
     return set;
+  }
+
+  toString(elementWidth = 1) {
+    return this.contents.map((line) => line.map((s) => String(s).padEnd(elementWidth)).join('')).join('\n');
   }
 }
