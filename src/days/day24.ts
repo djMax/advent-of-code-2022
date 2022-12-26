@@ -156,6 +156,10 @@ class ElfState implements State<ElfWorld> {
     return `${this.round} ${this.path[this.path.length - 1].toString()}`;
   }
 
+  shouldPrune(best: this): boolean {
+    return best.round < this.round;
+  }
+
   compare(other: this): number {
     return other.round - this.round;
   }

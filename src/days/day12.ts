@@ -4,6 +4,8 @@ import {
 } from '../index';
 import { MatrixBoard } from '../MatrixBoard';
 
+type Board = MatrixBoard<number>;
+
 function elevation(v: string) {
   if (v === 'S') {
     return 0;
@@ -15,25 +17,26 @@ function elevation(v: string) {
 }
 
 function isValid(
-  grid: number[][],
-  from: [number, number],
-  to: [number, number],
+  grid: Board,
+  from: Point,
+  to: Point,
   blockList: Point[],
 ) {
-  if (from[0] < 0 || to[0] < 0 || from[1] < 0 || to[1] < 0) {
+  if (from.x < 0 || to.x < 0 || from.y < 0 || to.y < 0) {
     return false;
   }
-  if (from[0] >= grid[0].length || to[0] >= grid[0].length) {
+  const dims = grid.dimension;
+  if (from.x >= dims.x || to.x >= dims.x) {
     return false;
   }
-  if (from[1] >= grid.length || to[1] >= grid.length) {
+  if (from.y >= dims.y || to.y >= dims.y) {
     return false;
   }
-  if (blockList.find((p) => p.x === to[0] && p.y === to[1])) {
+  if (blockList.find((p) => p.eq(to))) {
     return false;
   }
-  const eStart = grid[from[1]][from[0]];
-  const eEnd = grid[to[1]][to[0]];
+  const eStart = grid.at(from)!;
+  const eEnd = grid.at(to)!;
   if (eEnd <= eStart + 1) {
     return true;
   }
@@ -41,27 +44,25 @@ function isValid(
 }
 
 function gridToEdges(
-  grid: number[][],
+  grid: Board,
   blockList: Point[],
-  edgeInfo = (c: [number, number], v: number): [string, number] => [c.join(','), 27 - v],
+  edgeInfo = (c: Point, v: number): [string, number] => [c.toString(), 27 - v],
 ) {
   const edges: EdgeMap = {};
-  for (let y = 0; y < grid.length; y += 1) {
-    for (let x = 0; x < grid[y].length; x += 1) {
+  const dims = grid.dimension;
+  for (let y = 0; y < dims.y; y += 1) {
+    for (let x = 0; x < dims.x; x += 1) {
       const available: WeightedEdge = {};
-      [
-        [0, 1],
-        [0, -1],
-        [1, 0],
-        [-1, 0],
-      ]
-        .filter(([dx, dy]) => isValid(grid, [x, y], [x + dx, y + dy], blockList))
-        .forEach(([dx, dy]) => {
-          const el = grid[y + dy][x + dx];
-          const [edgeName, edgeWeight] = edgeInfo([x + dx, y + dy], el);
+      const xy = new Point(x, y);
+      xy
+        .nonDiagonalMoves
+        .filter((p) => isValid(grid, xy, p, blockList))
+        .forEach((p) => {
+          const el = grid.at(p)!;
+          const [edgeName, edgeWeight] = edgeInfo(p, el);
           available[edgeName] = edgeWeight;
         });
-      const me = edgeInfo([x, y], grid[y][x])[0];
+      const me = edgeInfo(xy, grid.at(xy)!)[0];
       if (edges[me]) {
         Object.assign(edges[me], available);
       } else {
@@ -83,20 +84,20 @@ function getGridInfo(input: string) {
 
 function part1(input: string) {
   const { grid, S, E } = getGridInfo(input);
-  const pred = Djikstra.init(gridToEdges(grid.contents, [S]), S.toString());
+  const pred = Djikstra.init(gridToEdges(grid, [S]), S.toString());
   const path = Djikstra.getPath(pred, S.toString(), E.toString());
   return path.length - 1;
 }
 
 function part2(input: string) {
   const { grid, E } = getGridInfo(input);
-  const edges = gridToEdges(grid.contents, [], (c, v) => {
+  const edges = gridToEdges(grid, [], (c, v) => {
     if (v === 1) {
       // For part 2, all "A" values are equivalent to the end, so this greatly
       // simplifies the graph
       return ['a', 1];
     }
-    return [c.join(','), 1];
+    return [c.toString(), 1];
   });
   const pred = Djikstra.init(edges, 'a');
   return Djikstra.getPath(pred, 'a', E.toString()).length - 1;

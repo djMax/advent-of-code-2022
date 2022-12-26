@@ -6,9 +6,6 @@ export interface World {}
 const debug = !!process.env.DEBUG;
 
 export interface State<W extends World> {
-  // Higher is better. Used to prioritize states for exploration
-  expectedScore: number;
-
   // Get a key that can be used to identify this state for pruning
   // purposes
   key: string;
@@ -18,6 +15,10 @@ export interface State<W extends World> {
   // Upon completion, isBetter will determine which one wins
   // (> 0 means I win, 0 means tie, < 0 means I lose)
   compare(other: this): number;
+
+  // Whether we should prune this state given the existing
+  // best state
+  shouldPrune(best: this): boolean;
 
   // Generate all possible next states from this state.
   // world and explored can be used to proactively prune states
@@ -50,7 +51,7 @@ export function optimizedSearch<W extends World, S extends State<World>>(
       return;
     }
 
-    if (bestCompletion && bestCompletion.compare(next) > 0) {
+    if (bestCompletion && next.shouldPrune(bestCompletion)) {
       // Prune this tree, it's worse than the best completion
       return;
     }
