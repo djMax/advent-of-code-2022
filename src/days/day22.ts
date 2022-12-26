@@ -1,4 +1,7 @@
-import { getFile, log, time } from '../index';
+import {
+  Cardinal, getFile, log, time,
+} from '../index';
+import { MatrixBoard } from '../MatrixBoard';
 import { Point } from '../Point';
 
 enum Contents {
@@ -7,51 +10,27 @@ enum Contents {
   Available = '.',
 }
 
-enum Direction {
-  Clockwise = 'R',
-  Counterclockwise = 'L',
-  NoChange = 'N',
-}
+type Board = MatrixBoard<Contents>;
 
 interface Move {
-  direction: Direction;
   steps: number;
+  turn?: 'R' | 'L';
 }
 
-enum Heading {
-  Right = 0,
-  Down = 1,
-  Left = 2,
-  Up = 3,
-}
+const DirectionOrder = 'ESWN';
 
 interface PosDir {
-  heading: Heading;
+  heading: Cardinal;
   position: Point;
 }
 
-const DELTAS: Record<Heading, Point> = {
-  [Heading.Right]: new Point(1, 0),
-  [Heading.Down]: new Point(0, 1),
-  [Heading.Left]: new Point(-1, 0),
-  [Heading.Up]: new Point(0, -1),
-};
-
-
 function parse(text: string) {
   const [boardStr, movesStr] = text.split('\n\n');
-  const board = boardStr
-    .split('\n')
-    .map((line) => line
-      .split('')
-      .map(
-        (c) => ({ ' ': Contents.Blank, '#': Contents.Wall, '.': Contents.Available }[c]
-            || Contents.Blank),
-      ));
+  const board = MatrixBoard.read(boardStr, (c) => (c || ' ') as Contents);
   const { value, moves } = movesStr.split('').reduce(
     (acc, c) => {
       if (c === 'L' || c === 'R') {
-        acc.moves.push({ direction: c as Direction, steps: acc.value });
+        acc.moves.push({ turn: c, steps: acc.value });
         return { value: 0, moves: acc.moves };
       }
       return { value: acc.value * 10 + Number(c), moves: acc.moves };
@@ -59,69 +38,60 @@ function parse(text: string) {
     { value: 0, moves: [] as Move[] },
   );
   if (value) {
-    moves.push({ direction: Direction.NoChange, steps: value });
+    moves.push({ steps: value });
   }
-  const start = board[0].findIndex((p) => p === Contents.Available);
+  const start = board.contents[0].findIndex((p) => p === Contents.Available);
   return { board, moves, start: new Point(start, 0) };
 }
 
-function nextPosition(
-  board: Contents[][],
-  position: Point,
-  heading: Heading,
-): Point | undefined {
-  const delta = DELTAS[heading];
-  const nX = position.x + delta.x;
-  const nY = position.y + delta.y;
-  const atPos = board[nY]?.[nX];
+function nextPosition(board: Board, position: Point, heading: Cardinal): Point | undefined {
+  const next = position.move(heading);
+  const atPos = board.at(next);
 
   if (atPos === Contents.Wall) {
     return undefined;
   }
   if (atPos === Contents.Available) {
-    return new Point(nX, nY);
+    return next;
   }
   if (atPos !== undefined && atPos !== Contents.Blank) {
-    throw new Error(`Position ${nX},${nY} is ${atPos} unexpectedly`);
+    throw new Error(`Position ${next.toString()} is ${atPos} unexpectedly`);
   }
 
-  const getStart = (dim: number) => {
-    if (delta[dim === 0 ? 'x' : 'y'] === 0) {
-      return position[dim === 0 ? 'x' : 'y'];
+  const dims = board.dimension;
+  const delta = Point[heading];
+  const getStartGivenDelta = (dim: 'x' | 'y') => {
+    if (delta[dim] === 0) {
+      return position[dim];
     }
-    if (delta[dim === 0 ? 'x' : 'y'] > 0) {
+    if (delta[dim] > 0) {
       return 0;
     }
-    if (dim === 0) {
-      return board[nY].length - 1;
+    if (dim === 'x') {
+      return dims.x - 1;
     }
-    return board.length - 1;
+    return dims.y - 1;
   };
-  const strPos = position.toString();
   for (
-    let start = new Point(getStart(0), getStart(1));
-    start.toString() !== strPos;
+    let start = new Point(getStartGivenDelta('x'), getStartGivenDelta('y'));
+    !start.eq(position);
     start = new Point(start.x + delta.x, start.y + delta.y)
   ) {
-    if (board[start.y][start.x] === Contents.Available) {
+    const at = board.at(start);
+    if (at === Contents.Available) {
       // Negative direction, we already did the move
       return start;
     }
-    if (board[start.y][start.x] === Contents.Wall) {
+    if (at === Contents.Wall) {
       return undefined;
     }
   }
   throw new Error(
-    `Failed to loop around board from ${position} ${delta}. Tried ${nX},${nY} ${atPos}`,
+    `Failed to loop around board from ${position} ${delta}. Tried ${next.toString()} ${atPos}`,
   );
 }
 
-function moveN(
-  board: Contents[][],
-  position: Point,
-  heading: Heading,
-  count: number,
-): Point {
+function moveN(board: Board, position: Point, heading: Cardinal, count: number): Point {
   let cur = position;
   for (let i = 0; i < count; i += 1) {
     const n = nextPosition(board, cur, heading);
@@ -133,25 +103,26 @@ function moveN(
   return cur;
 }
 
-function turn(heading: Heading, direction: Direction): Heading {
-  if (direction === Direction.NoChange) {
+function turn(heading: Cardinal, direction?: 'R' | 'L'): Cardinal {
+  if (!direction) {
     return heading;
   }
 
-  const dirChange = direction === Direction.Clockwise ? 1 : -1;
-  return (heading + 4 + dirChange) % 4 as Heading;
+  const dirChange = direction === 'R' ? 1 : -1;
+  const now = DirectionOrder.indexOf(heading);
+  return DirectionOrder[(now + 4 + dirChange) % 4] as Cardinal;
 }
 
-function score({ x, y }: Point, facing: Heading) {
-  return 1000 * (y + 1) + 4 * (x + 1) + facing;
+function score({ x, y }: Point, facing: Cardinal) {
+  return 1000 * (y + 1) + 4 * (x + 1) + DirectionOrder.indexOf(facing);
 }
 
-function walk(board: Contents[][], moves: Move[], start: Point) {
+function walk(board: Board, moves: Move[], start: Point) {
   let position = start;
-  let heading = Heading.Right;
+  let heading: Cardinal = 'E';
   moves.forEach((move) => {
     position = moveN(board, position, heading, move.steps);
-    heading = turn(heading, move.direction);
+    heading = turn(heading, move.turn);
   });
   return { position, heading };
 }
@@ -162,41 +133,37 @@ function part1(boardStr: string) {
   return score(position, heading);
 }
 
-type WrapRule = [Point, (p: Point) => [Point, Heading]];
+type WrapRule = [Point, (p: Point) => [Point, Cardinal]];
 
 const Inf = Infinity;
 
-const WrappingRules: WrapRule[][] = [
-  [
-    // R
-    [new Point(Inf, 50), ({ y }) => [new Point(99, 149 - y), Heading.Left]],
-    [new Point(Inf, 100), ({ y }) => [new Point(y + 50, 49), Heading.Up]],
-    [new Point(Inf, 150), ({ y }) => [new Point(149, 149 - y), Heading.Left]],
-    [new Point(Inf, 200), ({ y }) => [new Point(y - 100, 149), Heading.Up]],
+const WrappingRules: Record<Cardinal, WrapRule[]> = {
+  E: [
+    [new Point(Inf, 50), ({ y }) => [new Point(99, 149 - y), 'W']],
+    [new Point(Inf, 100), ({ y }) => [new Point(y + 50, 49), 'N']],
+    [new Point(Inf, 150), ({ y }) => [new Point(149, 149 - y), 'W']],
+    [new Point(Inf, 200), ({ y }) => [new Point(y - 100, 149), 'N']],
   ],
-  [
-    // D
-    [new Point(50, Inf), ({ x }) => [new Point(x + 100, 0), Heading.Down]],
-    [new Point(100, Inf), ({ x }) => [new Point(49, x + 100), Heading.Left]],
-    [new Point(150, Inf), ({ x }) => [new Point(99, x - 50), Heading.Left]],
+  S: [
+    [new Point(50, Inf), ({ x }) => [new Point(x + 100, 0), 'S']],
+    [new Point(100, Inf), ({ x }) => [new Point(49, x + 100), 'W']],
+    [new Point(150, Inf), ({ x }) => [new Point(99, x - 50), 'W']],
   ],
-  [
-    // L
-    [new Point(Inf, 50), ({ y }) => [new Point(0, 149 - y), Heading.Right]],
-    [new Point(Inf, 100), ({ y }) => [new Point(y - 50, 100), Heading.Down]],
-    [new Point(Inf, 150), ({ y }) => [new Point(50, 149 - y), Heading.Right]],
-    [new Point(Inf, 200), ({ y }) => [new Point(y - 100, 0), Heading.Down]],
+  W: [
+    [new Point(Inf, 50), ({ y }) => [new Point(0, 149 - y), 'E']],
+    [new Point(Inf, 100), ({ y }) => [new Point(y - 50, 100), 'S']],
+    [new Point(Inf, 150), ({ y }) => [new Point(50, 149 - y), 'E']],
+    [new Point(Inf, 200), ({ y }) => [new Point(y - 100, 0), 'S']],
   ],
-  [
-    // U
-    [new Point(50, Inf), ({ x }) => [new Point(50, x + 50), Heading.Right]],
-    [new Point(100, Inf), ({ x }) => [new Point(0, x + 100), Heading.Right]],
-    [new Point(150, Inf), ({ x }) => [new Point(x - 100, 199), Heading.Up]],
+  N: [
+    [new Point(50, Inf), ({ x }) => [new Point(50, x + 50), 'E']],
+    [new Point(100, Inf), ({ x }) => [new Point(0, x + 100), 'E']],
+    [new Point(150, Inf), ({ x }) => [new Point(x - 100, 199), 'N']],
   ],
-];
+};
 
 function walkCube({ board, moves, start }: ReturnType<typeof parse>): {
-  heading: Heading;
+  heading: Cardinal;
   position: Point;
 } {
   return moves.reduce(
@@ -207,22 +174,22 @@ function walkCube({ board, moves, start }: ReturnType<typeof parse>): {
       let facing = heading;
       let pos: Point;
 
-      while (board[p.y]?.[p.x] !== Contents.Wall && steps >= 0) {
-        const c = board[p.y]?.[p.x];
+      while (board.at(p) !== Contents.Wall && steps >= 0) {
+        const c = board.at(p);
         if (c === Contents.Available) {
           pos = p;
           facing = heading;
           steps -= 1;
-          p = new Point(DELTAS[heading].x + p.x, DELTAS[heading].y + p.y);
+          p = p.move(heading);
         } else {
-          const wrapRule = WrappingRules[facing]!;
+          const wrapRule = WrappingRules[facing];
           [p, heading] = wrapRule.find(ruleFinder)![1](p);
         }
       }
 
-      return { position: pos!, heading: turn(facing, instruction.direction) };
+      return { position: pos!, heading: turn(facing, instruction.turn) };
     },
-    { position: start, heading: Heading.Right } as PosDir,
+    { position: start, heading: 'E' } as PosDir,
   );
 }
 

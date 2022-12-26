@@ -39,8 +39,11 @@ export class MatrixBoard<T> {
     return new Point(this.contents[0].length, this.contents.length);
   }
 
-  at(x: number, y: number): T | undefined {
-    return this.contents[y]?.[x];
+  at(x: number | Point, y: number | undefined = undefined): T | undefined {
+    if (typeof x === 'number') {
+      return this.contents[y!]?.[x];
+    }
+    return this.contents[x.y]?.[x.x];
   }
 
   inRange(pos: Point) {

@@ -34,8 +34,15 @@ export class Point {
     return `${this.x},${this.y}`;
   }
 
-  move(combo: CardinalCombo): Point {
-    return this.add(Point.getDelta(combo));
+  times(n: number) {
+    if (n === 1) {
+      return this;
+    }
+    return new Point(this.x * n, this.y * n);
+  }
+
+  move(combo: CardinalCombo, n = 1): Point {
+    return this.add(Point.getDelta(combo).times(n));
   }
 
   static getDelta(combo: CardinalCombo) {

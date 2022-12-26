@@ -1,5 +1,7 @@
 import { Djikstra, EdgeMap, WeightedEdge } from 'lite-pathfindings';
-import { getFile, log, Point, time } from '../index';
+import {
+  getFile, log, Point, time,
+} from '../index';
 import { MatrixBoard } from '../MatrixBoard';
 
 function elevation(v: string) {
